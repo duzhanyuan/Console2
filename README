@@ -7,3 +7,126 @@ Just a fork of the original Console2 project over on SourceForge (http://sourcef
 ##Dependencies:
 
 * Boost CPP libraries: http://www.boost.org/
+
+
+Console是Windows控制台的增强的实现。受eConsole(http://www.informatik.uni-frankfurt.de/~corion)项目的启发而创建。
+
+
+
+Console功能包括：
+
+多选项卡（多标签页）支持
+
+像文本编辑器一样选择文本
+
+设置不同类型的背景（纯色，图形，透明度）
+
+设置字体
+
+各种不同的窗口风格
+
+注：Console不是一个Shell，因此，它没有实现Shell的特性，如命令完成，语法着色，命令行历史等。
+
+Console是你选择的Shell（cmd.exe, 4NT, bash等）的更强大的终端。
+
+=============================================================================
+
+官方版本不支持中文显示和输入，并且窗口最大化
+
+我们可以对其做一些修改来实现中文显示和输入。
+
+1，中文显示
+
+把下面的内容保存为reg文件：
+
+Windows Registry Editor Version 5.00
+
+[HKEY_CURRENT_USER\Console\Console2 command window]
+
+"CodePage"=dword:000003a8
+
+"ScreenBufferSize"=dword:01f40050
+
+"WindowPosition"=dword:00ee0127
+
+"FontSize"=dword:000e0000
+
+"FontFamily"=dword:00000036
+
+"FontWeight"=dword:00000190
+
+"FaceName"="新宋体"
+
+ 
+
+2,中文输入（需要修改源代码）
+
+修改ConsoleView.cpp文件:
+
+BOOL ConsoleView::PreTranslateMessage(MSG* pMsg)
+
+{
+
+ if ((pMsg->message == WM_KEYDOWN) || 
+
+ (pMsg->message == WM_KEYUP) ||
+
+ (pMsg->message == WM_SYSKEYDOWN) || 
+
+ (pMsg->message == WM_SYSKEYUP))
+
+ {
+
+ // Avoid calling ::TranslateMessage for WM_KEYDOWN, WM_KEYUP,
+
+ // WM_SYSKEYDOWN and WM_SYSKEYUP (except for wParam == VK_PACKET, 
+
+ // which is sent by SendInput when pasting text).
+
+ ///
+
+ // This prevents WM_CHAR and WM_SYSCHAR messages, enabling stuff like
+
+ // handling 'dead' characters input and passing all keys to console.
+
+ if (pMsg->wParam == VK_PACKET) return FALSE;
+
+ //::DispatchMessage(pMsg);   // 原代码中的内容
+
+ //添加输入中文功能: begin （参考自http://download.csdn.net/detail/zhangj7851/2513105）
+
+ ::TranslateMessage(pMsg);
+
+ if(!::PeekMessage(pMsg, NULL, 0, 0, PM_NOREMOVE))
+
+ ::DispatchMessage(pMsg);
+
+ //添加输入中文功能: end
+
+ return TRUE;
+
+ }
+
+ 
+
+ return FALSE;
+
+}
+
+ 
+
+3，窗口最大化（需要修改源代码）
+
+修改MainFrame.cpp文件
+
+void MainFrame::SetWindowStyles()
+
+{
+
+    ......
+
+    //dwStyle &= ~WS_MAXIMIZEBOX;   // 这一行注释或删除掉
+
+    ......
+
+}
